@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+sqlmodel
+sqlalchemy-libsql
+aiosqlite
+python-dotenv
+sqlite-utils
+# ...existing code...
