@@ -1,5 +1,5 @@
 from sqlmodel import Session, select
-from models import Vencimiento
+from .models import Vencimiento
 
 # Crear
 def crear_vencimiento(session: Session, vencimiento: Vencimiento):
