@@ -1,9 +1,9 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException
 from sqlmodel import SQLModel, Session, select
-from database import engine, get_session  # Importación absoluta
-from models import Vencimiento
-from crud import registrar_vencimiento, obtener_vencimientos, obtener_vencimiento_por_id, cambiar_fecha, cambiar_responsable, cambiar_pago
+from .database import engine, get_session  # Importación relativa
+from .models import Vencimiento
+from .crud import registrar_vencimiento, obtener_vencimientos, obtener_vencimiento_por_id, cambiar_fecha, cambiar_responsable, cambiar_pago
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
