@@ -1,5 +1,5 @@
 from sqlmodel import Session, select
-from models import Vencimiento
+from api.models import Vencimiento  # Importación absoluta completa
 
 # Crear
 def registrar_vencimiento(session: Session, vencimiento: Vencimiento):
