@@ -1,10 +1,9 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException
 from sqlmodel import SQLModel, Session, select
-from .database import engine, get_session
-from .models import Vencimiento
-from .crud import * # Importar todas las funciones CRUD
-from .crud import crear_vencimiento
+from database import engine, get_session  # Importación absoluta
+from models import Vencimiento
+from crud import registrar_vencimiento, obtener_vencimientos, obtener_vencimiento_por_id, cambiar_fecha, cambiar_responsable, cambiar_pago
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -13,50 +12,118 @@ async def lifespan(app: FastAPI):
         if not session.exec(select(Vencimiento)).first():
             print("🚩 No hay vencimientos, creando ejemplos")
             ejemplos = [
-                Vencimiento(fecha="2023-10-01", vencimiento="2023-10-31", descripcion="Ejemplo 1", deuda=100.0, pago=50.0, pagado=False, responsable="Responsable A"),
-                Vencimiento(fecha="2023-10-02", vencimiento="2023-11-01", descripcion="Ejemplo 2", deuda=200.0, pago=150.0, pagado=False, responsable="Responsable B"),
-                Vencimiento(fecha="2023-10-03", vencimiento="2023-11-02", descripcion="Ejemplo 3", deuda=300.0, pago=250.0, pagado=False, responsable="Responsable C"),
-                Vencimiento(fecha="2023-10-04", vencimiento="2023-11-03", descripcion="Ejemplo 4", deuda=400.0, pago=350.0, pagado=False, responsable="Responsable D"),
-                Vencimiento(fecha="2023-10-05", vencimiento="2023-11-04", descripcion="Ejemplo 5", deuda=500.0, pago=450.0, pagado=False, responsable="Responsable E"),
+                # Febrero 2025
+                Vencimiento(fecha="2025-02-01", vencimiento="2025-02-28", descripcion="Pago servicios Q1 2025",         deuda=1500.0, pago="", pagado=False, responsable="silvia"),
+                Vencimiento(fecha="2025-02-01", vencimiento="2025-02-28", descripcion="Cuota mantenimiento Q1 2025",    deuda=2000.0, pago="", pagado=False, responsable="carlos"),
+                Vencimiento(fecha="2025-02-01", vencimiento="2025-02-28", descripcion="Seguro anual 2025",              deuda=3500.0, pago="", pagado=False, responsable="marcelo"),
+                Vencimiento(fecha="2025-02-01", vencimiento="2025-02-28", descripcion="Impuestos municipales Q1",       deuda=1200.0, pago="", pagado=False, responsable="silvia"),
+                # Marzo 2025
+                Vencimiento(fecha="2025-03-01", vencimiento="2025-03-31", descripcion="Servicios marzo 2025",           deuda=1600.0, pago="", pagado=False, responsable="carlos"),
+                Vencimiento(fecha="2025-03-01", vencimiento="2025-03-31", descripcion="Mantenimiento edificio",         deuda=2200.0, pago="", pagado=False, responsable="marcelo"),
+                Vencimiento(fecha="2025-03-01", vencimiento="2025-03-31", descripcion="Cuota leasing 2025",             deuda=3000.0, pago="", pagado=False, responsable="silvia"),
+                Vencimiento(fecha="2025-03-01", vencimiento="2025-03-31", descripcion="Servicios limpieza",             deuda=1800.0, pago="", pagado=False, responsable="carlos"),
+                # Abril 2025
+                Vencimiento(fecha="2025-04-01", vencimiento="2025-04-30", descripcion="Servicios Q2 2025",              deuda=1700.0, pago="", pagado=False, responsable="marcelo"),
+                Vencimiento(fecha="2025-04-01", vencimiento="2025-04-30", descripcion="Cuota mantenimiento Q2 2025",    deuda=2100.0, pago="", pagado=False, responsable="silvia"),
+                Vencimiento(fecha="2025-04-01", vencimiento="2025-04-30", descripcion="Impuestos municipales Q2",       deuda=1300.0, pago="", pagado=False, responsable="carlos"),
+                Vencimiento(fecha="2025-04-01", vencimiento="2025-04-30", descripcion="Seguro trimestral",              deuda=2500.0, pago="", pagado=False, responsable="marcelo"),
             ]
             for ejemplo in ejemplos:
-                crear_vencimiento(session, ejemplo)
+                registrar_vencimiento(session, ejemplo)
     yield
-    
+
 app = FastAPI(lifespan=lifespan)
 
 @app.post("/vencimientos/", response_model=Vencimiento)
-def create_new_vencimiento(vencimiento: Vencimiento, session=Depends(get_session)):
-    return crear_vencimiento(session, vencimiento)
+def crear_vencimiento(vencimiento: Vencimiento, session: Session = Depends(get_session)):
+    """
+    Crea un nuevo vencimiento en la base de datos.
+
+    :param vencimiento: Objeto Vencimiento a crear.
+    :param session: Sesión de base de datos SQLModel.
+    :return: Vencimiento creado.
+    """
+    return registrar_vencimiento(session, vencimiento)
 
 @app.get("/vencimientos/", response_model=list[Vencimiento])
-def read_vencimientos(session=Depends(get_session)):
-    return obtener_vencimientos(session)
+def leer_vencimientos(
+    desde: str = None,
+    hasta: str = None,
+    pagado: bool = None,
+    responsable: str = None,
+    session: Session = Depends(get_session)
+):
+    """
+    Obtiene una lista de vencimientos filtrados según los parámetros especificados.
 
-@app.get("/vencimientos/{vencimiento_id}", response_model=Vencimiento)
-async def read_vencimiento(vencimiento_id: int, session=Depends(get_session)):
-    vencimiento = obtener_vencimiento_por_id(session, vencimiento_id)
+    :param session: Sesión de base de datos SQLModel.
+    :param desde: Fecha inicial para filtrar vencimientos. (Opcional)
+    :param hasta: Fecha final para filtrar vencimientos. (Opcional)
+    :param pagado: Estado de pago para filtrar vencimientos. True para pagados, False para impagos. (Opcional)
+    :param responsable: Responsable para filtrar vencimientos. (Opcional)
+    :return: Lista de objetos Vencimiento que cumplen con los filtros.
+    """
+    return obtener_vencimientos(session, desde, hasta, pagado, responsable)
+
+@app.get("/vencimientos/{id}", response_model=Vencimiento)
+async def leer_vencimiento(id: int, session: Session = Depends(get_session)):
+    """
+    Obtiene un vencimiento específico por su ID.
+
+    :param id: ID del vencimiento a obtener.
+    :param session: Sesión de base de datos SQLModel.
+    :return: Objeto Vencimiento encontrado.
+    :raises HTTPException: Si no se encuentra el vencimiento.
+    """
+    vencimiento = obtener_vencimiento_por_id(session, id)
     if not vencimiento:
         raise HTTPException(status_code=404, detail="Vencimiento no encontrado")
     return vencimiento
 
-@app.patch("/vencimientos/{vencimiento_id}/cambiar_fecha", response_model=Vencimiento)
-async def cambiar_fecha_vencimiento(vencimiento_id: int, fecha: str, session=Depends(get_session)):
-    vencimiento = cambiar_fecha(session, vencimiento_id, fecha)
+@app.patch("/vencimientos/{id}/cambiar_fecha", response_model=Vencimiento)
+async def actualizar_fecha_vencimiento(id: int, fecha: str, session: Session = Depends(get_session)):
+    """
+    Actualiza la fecha de un vencimiento específico.
+
+    :param id: ID del vencimiento a actualizar.
+    :param fecha: Nueva fecha para el vencimiento.
+    :param session: Sesión de base de datos SQLModel.
+    :return: Objeto Vencimiento actualizado.
+    :raises HTTPException: Si no se encuentra el vencimiento.
+    """
+    vencimiento = cambiar_fecha(session, id, fecha)
     if not vencimiento:
         raise HTTPException(status_code=404, detail="Vencimiento no encontrado")
     return vencimiento
 
-@app.patch("/vencimientos/{vencimiento_id}/cambiar_responsable", response_model=Vencimiento)
-async def cambiar_responsable_vencimiento(vencimiento_id: int, responsable: str, session=Depends(get_session)):
-    vencimiento = cambiar_responsable(session, vencimiento_id, responsable)
+@app.patch("/vencimientos/{id}/cambiar_responsable", response_model=Vencimiento)
+async def actualizar_responsable_vencimiento(id: int, responsable: str, session: Session = Depends(get_session)):
+    """
+    Actualiza el responsable de un vencimiento específico.
+
+    :param id: ID del vencimiento a actualizar.
+    :param responsable: Nuevo responsable del vencimiento.
+    :param session: Sesión de base de datos SQLModel.
+    :return: Objeto Vencimiento actualizado.
+    :raises HTTPException: Si no se encuentra el vencimiento.
+    """
+    vencimiento = cambiar_responsable(session, id, responsable)
     if not vencimiento:
         raise HTTPException(status_code=404, detail="Vencimiento no encontrado")
     return vencimiento
 
-@app.patch("/vencimientos/{vencimiento_id}/cambiar_pago", response_model=Vencimiento)
-async def cambiar_pago_vencimiento(vencimiento_id: int, monto: float = None, session=Depends(get_session)):
-    vencimiento = cambiar_pago(session, vencimiento_id, monto)
+@app.patch("/vencimientos/{id}/cambiar_pago", response_model=Vencimiento)
+async def actualizar_pago_vencimiento(id: int, monto: float = None, session: Session = Depends(get_session)):
+    """
+    Actualiza el monto y marca como pagado un vencimiento específico.
+
+    :param id: ID del vencimiento a actualizar.
+    :param monto: Nuevo monto del pago. (Opcional)
+    :param session: Sesión de base de datos SQLModel.
+    :return: Objeto Vencimiento actualizado.
+    :raises HTTPException: Si no se encuentra el vencimiento.
+    """
+    vencimiento = cambiar_pago(session, id, monto)
     if not vencimiento:
         raise HTTPException(status_code=404, detail="Vencimiento no encontrado")
     return vencimiento
