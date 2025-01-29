@@ -3,7 +3,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlmodel import SQLModel, Session, select
 from api.database import engine, get_session  # Importación absoluta
 from api.models import Vencimiento
-from api.crud import registrar_vencimiento, obtener_vencimientos, obtener_vencimiento_por_id, cambiar_fecha, cambiar_responsable, cambiar_pago
+from api.crud import registrar_vencimiento, obtener_vencimientos, obtener_vencimiento, cambiar_fecha, cambiar_responsable, cambiar_pago
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -34,6 +34,16 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+@app.get("/")
+def leer_ruta_raiz(session: Session = Depends(get_session), response_model=list[Vencimiento]):
+    """
+    Ruta raíz de la API.
+
+    :return: Mensaje de bienvenida.
+    """
+    return leer_vencimientos(session)
+
+
 @app.post("/vencimientos/", response_model=Vencimiento)
 def crear_vencimiento(vencimiento: Vencimiento, session: Session = Depends(get_session)):
     """
@@ -45,14 +55,9 @@ def crear_vencimiento(vencimiento: Vencimiento, session: Session = Depends(get_s
     """
     return registrar_vencimiento(session, vencimiento)
 
+
 @app.get("/vencimientos/", response_model=list[Vencimiento])
-def leer_vencimientos(
-    desde: str = None,
-    hasta: str = None,
-    pagado: bool = None,
-    responsable: str = None,
-    session: Session = Depends(get_session)
-):
+def leer_vencimientos(desde: str = None,hasta: str = None,pagado: bool = None,responsable: str = None, session: Session = Depends(get_session)):
     """
     Obtiene una lista de vencimientos filtrados según los parámetros especificados.
 
@@ -65,6 +70,7 @@ def leer_vencimientos(
     """
     return obtener_vencimientos(session, desde, hasta, pagado, responsable)
 
+
 @app.get("/vencimientos/{id}", response_model=Vencimiento)
 async def leer_vencimiento(id: int, session: Session = Depends(get_session)):
     """
@@ -75,10 +81,11 @@ async def leer_vencimiento(id: int, session: Session = Depends(get_session)):
     :return: Objeto Vencimiento encontrado.
     :raises HTTPException: Si no se encuentra el vencimiento.
     """
-    vencimiento = obtener_vencimiento_por_id(session, id)
+    vencimiento = obtener_vencimiento(session, id)
     if not vencimiento:
         raise HTTPException(status_code=404, detail="Vencimiento no encontrado")
     return vencimiento
+
 
 @app.patch("/vencimientos/{id}/cambiar_fecha", response_model=Vencimiento)
 async def actualizar_fecha_vencimiento(id: int, fecha: str, session: Session = Depends(get_session)):
@@ -96,6 +103,7 @@ async def actualizar_fecha_vencimiento(id: int, fecha: str, session: Session = D
         raise HTTPException(status_code=404, detail="Vencimiento no encontrado")
     return vencimiento
 
+
 @app.patch("/vencimientos/{id}/cambiar_responsable", response_model=Vencimiento)
 async def actualizar_responsable_vencimiento(id: int, responsable: str, session: Session = Depends(get_session)):
     """
@@ -112,6 +120,7 @@ async def actualizar_responsable_vencimiento(id: int, responsable: str, session:
         raise HTTPException(status_code=404, detail="Vencimiento no encontrado")
     return vencimiento
 
+
 @app.patch("/vencimientos/{id}/cambiar_pago", response_model=Vencimiento)
 async def actualizar_pago_vencimiento(id: int, monto: float = None, session: Session = Depends(get_session)):
     """
@@ -127,4 +136,3 @@ async def actualizar_pago_vencimiento(id: int, monto: float = None, session: Ses
     if not vencimiento:
         raise HTTPException(status_code=404, detail="Vencimiento no encontrado")
     return vencimiento
-

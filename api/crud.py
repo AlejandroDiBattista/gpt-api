@@ -1,3 +1,4 @@
+from sqlmodel import select
 from api.database import Session, engine
 from api.models import Vencimiento  # Importación relativa
 
@@ -53,7 +54,7 @@ def obtener_vencimientos(session: Session, desde: str = None, hasta: str = None,
     
     return session.exec(query).all()
 
-def obtener_vencimiento_por_id(session: Session, id: int):
+def obtener_vencimiento(session: Session, id: int):
     """
     Obtiene un vencimiento específico por su ID.
 
