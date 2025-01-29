@@ -1,5 +1,5 @@
-from sqlmodel import Session, select
-from models import Vencimiento  # Importación relativa
+from api.database import Session, engine
+from api.models import Vencimiento  # Importación relativa
 
 # Crear
 def registrar_vencimiento(session: Session, vencimiento: Vencimiento):

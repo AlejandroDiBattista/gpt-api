@@ -12,4 +12,4 @@ class VencimientoBase(SQLModel):
 
 class Vencimiento(VencimientoBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    
+
