@@ -34,9 +34,9 @@ def main():
         session.commit()
         
         # Listar héroes
-        heroes = session.exec(select(Hero)).all()
+        heroes = session.exec(select(Hero).all()
 
-        print("\n📜 Lista de héroes:")
+        print("\n 📜 Lista de héroes:")
         for hero in heroes:
             print(f"  {hero.id}: {hero.name} ({hero.power}) - Edad: {hero.age}")
         
@@ -47,8 +47,8 @@ def main():
         #     print(f"❌ Héroe eliminado: {heroes[-1].name}")
         
         # Listar nuevamente
-        heroes = session.exec(select(Hero)).all()
-        print("\n📜 Lista actualizada de héroes:")
+        heroes = session.exec(select(Hero).all()
+        print("\n 📜 Lista actualizada de héroes:")
         for hero in heroes:
             print(f"  {hero.id}: {hero.name} ({hero.power}) - Edad: {hero.age}")
 

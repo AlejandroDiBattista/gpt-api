@@ -1,53 +1,55 @@
 from sqlmodel import select
-from api.database import Session, engine
-from api.models import Vencimiento  # Importación relativa
+from api.database import Session, get_session, engine
+from api.models import *  # Importación relativa
+from datetime import date  # Importar date
 
-# Crear
-def registrar_vencimiento(session: Session, vencimiento: Vencimiento):
+
+def registrar_vencimiento(session: Session, vencimiento: VencimientoCreate):
     """
     Registra un nuevo vencimiento en la base de datos.
 
     :param session: Sesión de SQLModel para interactuar con la base de datos.
-    :param vencimiento: Objeto Vencimiento a registrar.
+    :param vencimiento: Objeto VencimientoCreate a registrar.
     :return: El objeto Vencimiento registrado.
     
-    En caso de no tener un responsable debe enviar un string vacío.
-    En caso de no tener una fecha de pago debe enviar un string vacío y asumirá que es el mismo día que el vencimiento.
-    En caso de no tener un monto de pago debe enviar un 0.0 y asumirá que no se ha pagado.
-    En caso de no tener un responsable debe enviar un string vacío.
+    En caso de no tener un responsable, enviar un string vacío.
+    En caso de no tener una fecha de pago, enviar un string vacío y se asumirá que es el mismo día que el vencimiento.
+    En caso de no tener un monto de pago, enviar un 0.0 y se asumirá que no se ha pagado.
     """
     session.add(vencimiento)
     session.commit()
     session.refresh(vencimiento)
     return vencimiento
 
-# Leer
-def obtener_vencimientos(session: Session, desde: str = None, hasta: str = None, pagado: bool = None, responsable: str = None):
+
+def obtener_vencimientos(session: Session, desde: date = None, hasta: date = None, pagado: bool = None, responsable: str = None):
     """
     Obtiene una lista de vencimientos según los filtros especificados.
-    Args:
-        session (Session): Sesión de base de datos SQLModel
-        desde (str, optional): Fecha inicial para filtrar vencimientos. Defaults to None.
-        hasta (str, optional): Fecha final para filtrar vencimientos. Defaults to None. 
-        pagado (bool, optional): Filtrar por estado de pago. True para pagados, False para impagos. Defaults to None.
-        responsable (str, optional): Filtrar por responsable del vencimiento. Defaults to None.
-    Returns:
-        list: Lista de objetos Vencimiento que cumplen con los filtros especificados
-    Example:
-        >>> vencimientos = obtener_vencimientos(session, desde="2023-01-01", hasta="2023-12-31", pagado=False)
+
+    :param session: Sesión de SQLModel para interactuar con la base de datos.
+    :param desde: Fecha inicial para filtrar vencimientos. Opcional, por defecto None.
+    :param hasta: Fecha final para filtrar vencimientos. Opcional, por defecto None.
+    :param pagado: Filtrar por estado de pago. True para pagados, False para impagos. Opcional, por defecto None.
+    :param responsable: Filtrar por responsable del vencimiento. Opcional, por defecto None.
+    :return: Lista de objetos Vencimiento que cumplen con los filtros especificados.
+    :example:
+        >>> vencimientos = obtener_vencimientos(session, desde=date(2023, 1, 1), hasta=date(2023, 12, 31), pagado=False)
     """
     query = select(Vencimiento)
 
-    if desde:
-        query = query.where(Vencimiento.fecha >= desde)
-    if hasta:
-        query = query.where(Vencimiento.fecha <= hasta)
+    print(f"obtener_vencimientos > {desde=}, {hasta=}, {pagado=}, {responsable=}")
+    
+    if desde is not None:
+        query = query.where(Vencimiento.vencimiento >= desde)
+        
+    if hasta is not None:
+        query = query.where(Vencimiento.vencimiento <= hasta)
 
     if pagado is not None:
         if pagado:
-            query = query.where(Vencimiento.pago > 0)
+            query = query.where(Vencimiento.pagado > 0)
         else:
-            query = query.where(Vencimiento.pago == 0)
+            query = query.where(Vencimiento.pagado == 0)
 
     if responsable:
         query = query.where(Vencimiento.responsable == responsable)
@@ -64,8 +66,8 @@ def obtener_vencimiento(session: Session, id: int):
     """
     return session.get(Vencimiento, id)
 
-# Actualizar fecha de pago
-def cambiar_fecha(session: Session, id: int, fecha: str):
+
+def cambiar_fecha(session: Session, id: int, fecha: date):
     """
     Cambia la fecha de un vencimiento específico.
 
@@ -75,13 +77,13 @@ def cambiar_fecha(session: Session, id: int, fecha: str):
     :return: El objeto Vencimiento actualizado o None si no se encuentra.
     """
     if vencimiento := session.get(Vencimiento, id):
-        vencimiento.fecha = fecha
+        vencimiento.vencimiento = fecha
         session.add(vencimiento)
         session.commit()
         session.refresh(vencimiento)
     return vencimiento
 
-# Cambiar responsable
+
 def cambiar_responsable(session: Session, id: int, responsable: str):
     """
     Cambia el responsable de un vencimiento específico.
@@ -98,20 +100,20 @@ def cambiar_responsable(session: Session, id: int, responsable: str):
         session.refresh(vencimiento)
     return vencimiento
 
-# Cambiar pago
-def cambiar_pago(session: Session, id: int, monto: float):
+
+def cambiar_pago(session: Session, id: int, monto: float | None):
     """
     Cambia el monto y marca como pagado un vencimiento específico.
 
     :param session: Sesión de SQLModel para interactuar con la base de datos.
     :param id: ID del vencimiento a actualizar.
-    :param monto: Nuevo monto del pago.
+    :param monto: Nuevo monto del pago. Si es None, se actualiza solo la marca de pago.
     :return: El objeto Vencimiento actualizado o None si no se encuentra.
     """
     if vencimiento := session.get(Vencimiento, id):
         if monto is not None:
-            vencimiento.pago = monto
-        vencimiento.pagado = True
+            vencimiento.pagado = monto
+            vencimiento.pago = date.today()
         session.add(vencimiento)
         session.commit()
         session.refresh(vencimiento)
