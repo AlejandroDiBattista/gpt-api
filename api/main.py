@@ -6,11 +6,6 @@ from api.models import *
 from api.crud import registrar_vencimiento, obtener_vencimientos, obtener_vencimiento, cambiar_fecha, cambiar_responsable, cambiar_pago
 from datetime import date  # Importar date
 
-from rich.traceback import install
-
-# Activa el formateo bonito de errores
-install()
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     SQLModel.metadata.create_all(engine)
