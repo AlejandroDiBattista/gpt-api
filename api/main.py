@@ -36,134 +36,62 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-@app.get("/", response_model=list[Vencimiento])
-def leer_raiz(session: Session = Depends(get_session)):
-    """
-    Ruta raíz de la API que devuelve una lista de vencimientos.
-
-    Parámetros:
-        - session (Session): Sesión de base de datos SQLModel, gestionada automáticamente.
-
-    Retorna:
-        List[Vencimiento]: Lista de vencimientos.
-    """
+# Ruta raíz: devuelve la lista completa de vencimientos.
+@app.get("/", 
+         summary="Ruta raíz de la API que devuelve una lista de vencimientos.", 
+         description="Consulta la base de datos y retorna una lista completa de vencimientos registrados.")
+def leer_raiz(session: Session = Depends(get_session)) -> list[Vencimiento]:
     return obtener_vencimientos(session)
 
-
-@app.post("/vencimientos/", response_model=Vencimiento)
-def crear_vencimiento(vencimiento: VencimientoCreate, session: Session = Depends(get_session)):
-    """
-    Crea un nuevo vencimiento en la base de datos.
-
-    Parámetros:
-        - vencimiento (VencimientoCreate): Objeto Vencimiento a crear.
-        - session (Session): Sesión de base de datos SQLModel, gestionada automáticamente.
-
-    Retorna:
-        Vencimiento: Vencimiento creado.
-    """
+# Crea un nuevo vencimiento a partir de VencimientoCreate y lo registra en la base de datos.
+@app.post("/vencimientos/", 
+          summary="Crea un nuevo vencimiento en la base de datos.",
+          description="Crea un objeto Vencimiento a partir de VencimientoCreate y lo registra en la base de datos.")
+def crear_vencimiento(vencimiento: VencimientoCreate, session: Session = Depends(get_session)) -> Vencimiento:
     return registrar_vencimiento(session, vencimiento)
 
-
-@app.get("/vencimientos/", response_model=list[Vencimiento])
-def leer_vencimientos(desde: date = None, hasta: date = None, pagado: bool = None, responsable: str = None, session: Session = Depends(get_session)):
-    """
-    Obtiene una lista de vencimientos filtrados según los parámetros especificados.
-
-    Parámetros:
-        - desde (date, opcional): Fecha inicial para filtrar vencimientos.
-        - hasta (date, opcional): Fecha final para filtrar vencimientos.
-        - pagado (bool, opcional): Estado de pago para filtrar vencimientos. True para pagados, False para impagos.
-        - responsable (str, opcional): Responsable para filtrar vencimientos.
-        - session (Session): Sesión de base de datos SQLModel, gestionada automáticamente.
-
-    Retorna:
-        List[Vencimiento]: Lista de objetos Vencimiento que cumplen con los filtros.
-    """
+# Filtra y retorna vencimientos según criterios.
+@app.get("/vencimientos/", 
+         summary="Obtiene una lista de vencimientos filtrados según criterios.", 
+         description="Permite filtrar vencimientos por fechas, estado de pago y responsable.")
+def leer_vencimientos(desde: date = None, hasta: date = None, pagado: bool = None, responsable: str = None, session: Session = Depends(get_session)) -> list[Vencimiento]:
     return obtener_vencimientos(session, desde, hasta, pagado, responsable)
 
-
-@app.get("/vencimientos/{id}", response_model=Vencimiento)
-async def leer_vencimiento(id: int, session: Session = Depends(get_session)):
-    """
-    Obtiene un vencimiento específico por su ID.
-
-    Parámetros:
-        - id (int): ID del vencimiento a obtener.
-        - session (Session): Sesión de base de datos SQLModel, gestionada automáticamente.
-
-    Retorna:
-        Vencimiento: Objeto Vencimiento encontrado.
-
-    Excepciones:
-        - HTTPException: Se lanza con status_code=404 si no se encuentra el vencimiento.
-    """
+# Retorna un vencimiento específico por ID.
+@app.get("/vencimientos/{id}", 
+         summary="Obtiene un vencimiento específico por ID.", 
+         description="Busca en la base de datos el vencimiento con el identificador único dado y retorna error si no se encuentra.")
+async def leer_vencimiento(id: int, session: Session = Depends(get_session)) -> Vencimiento:
     vencimiento = obtener_vencimiento(session, id)
     if not vencimiento:
         raise HTTPException(status_code=404, detail="Vencimiento no encontrado")
     return vencimiento
 
-
-@app.patch("/vencimientos/{id}/pasar/{fecha}", response_model=Vencimiento)
-async def actualizar_fecha_vencimiento(id: int, fecha: date, session: Session = Depends(get_session)):
-    """
-    Actualiza la fecha de un vencimiento específico.
-
-    Parámetros:
-        - id (int): ID del vencimiento a actualizar.
-        - fecha (date): Nueva fecha para el vencimiento.
-        - session (Session): Sesión de base de datos SQLModel, gestionada automáticamente.
-
-    Retorna:
-        Vencimiento: Objeto Vencimiento actualizado.
-
-    Excepciones:
-        - HTTPException: Se lanza con status_code=404 si no se encuentra el vencimiento.
-    """
+# Actualiza la fecha de vencimiento.
+@app.patch("/vencimientos/{id}/pasar/{fecha}", 
+           summary="Actualiza la fecha de vencimiento.", 
+           description="Cambia la fecha de un vencimiento específico; retorna el objeto actualizado o error en caso de inexistencia.")
+async def actualizar_fecha_vencimiento(id: int, fecha: date, session: Session = Depends(get_session)) -> Vencimiento:
     vencimiento = cambiar_fecha(session, id, fecha)
     if not vencimiento:
         raise HTTPException(status_code=404, detail="Vencimiento no encontrado")
     return vencimiento
 
-
-@app.patch("/vencimientos/{id}/asignar/{responsable}", response_model=Vencimiento)
-async def actualizar_responsable_vencimiento(id: int, responsable: str, session: Session = Depends(get_session)):
-    """
-    Actualiza el responsable de un vencimiento específico.
-
-    Parámetros:
-        - id (int): Identificador único del vencimiento a modificar.
-        - responsable (str): Nuevo responsable que se asignará al vencimiento.
-        - session (Session): Sesión de base de datos SQLModel, gestionada automáticamente.
-
-    Retorna:
-        Vencimiento: Objeto vencimiento actualizado.
-
-    Excepciones:
-        - HTTPException: Se lanza con status_code=404 si no se encuentra el vencimiento.
-    """
+# Actualiza el responsable del vencimiento.
+@app.patch("/vencimientos/{id}/asignar/{responsable}", 
+           summary="Actualiza el responsable del vencimiento.", 
+           description="Modifica el responsable de un vencimiento y retorna el objeto actualizado; lanza error si no se encuentra.")
+async def actualizar_responsable_vencimiento(id: int, responsable: str, session: Session = Depends(get_session)) -> Vencimiento:
     vencimiento = cambiar_responsable(session, id, responsable)
     if not vencimiento:
         raise HTTPException(status_code=404, detail="Vencimiento no encontrado")
     return vencimiento
 
-
-@app.patch("/vencimientos/{id}/pagar/{monto}", response_model=Vencimiento)
-async def actualizar_pago_vencimiento(id: int, monto: float = None, session: Session = Depends(get_session)):
-    """
-    Actualiza el monto de pago y marca un vencimiento como pagado.
-
-    Parámetros:
-        - id (int): Identificador único del vencimiento a actualizar.
-        - monto (float, opcional): Nuevo monto del pago. Si se omite, se aplicará el monto por defecto.
-        - session (Session): Sesión de base de datos SQLModel, gestionada automáticamente.
-
-    Retorna:
-        Vencimiento: Objeto vencimiento actualizado.
-
-    Excepciones:
-        - HTTPException: Se lanza con status_code=404 si no se encuentra el vencimiento.
-    """
+# Actualiza el pago de un vencimiento.
+@app.patch("/vencimientos/{id}/pagar/{monto}", 
+           summary="Actualiza el pago de un vencimiento.", 
+           description="Registra un nuevo monto de pago y marca el vencimiento como pagado; retorna el objeto actualizado o error si no existe.")
+async def actualizar_pago_vencimiento(id: int, monto: float = None, session: Session = Depends(get_session)) -> Vencimiento:
     vencimiento = cambiar_pago(session, id, monto)
     if not vencimiento:
         raise HTTPException(status_code=404, detail="Vencimiento no encontrado")

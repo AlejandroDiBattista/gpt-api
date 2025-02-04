@@ -2,16 +2,6 @@ from sqlmodel import SQLModel, Field
 from datetime import date  # Importar date
 
 class VencimientoBase(SQLModel):
-    """
-    Base para el modelo Vencimiento.
-
-    :param vencimiento: Fecha de vencimiento.
-    :param descripcion: Descripción del vencimiento.
-    :param deuda: Monto de la deuda.
-    :param pago: Fecha de pago, puede ser None.
-    :param pagado: Monto pagado, puede ser None.
-    :param responsable: Responsable del pago, puede ser None.
-    """
     # Datos del vencimiento
     vencimiento: date       # Fecha de vencimiento
     descripcion: str        # Descripción del vencimiento
