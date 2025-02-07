@@ -7,6 +7,7 @@ class VencimientoBase(SQLModel):
     descripcion: str        # Descripción del vencimiento
     deuda: float            # Monto de la deuda
     # Datos del pago
+    
     pago: date | None = None       # Fecha de pago 
     pagado: float | None = None    # Monto pagado
     responsable: str | None = None # Responsable del pago

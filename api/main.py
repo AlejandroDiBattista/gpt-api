@@ -48,7 +48,8 @@ def leer_raiz(session: Session = Depends(get_session)) -> list[Vencimiento]:
           summary="Crea un nuevo vencimiento en la base de datos.",
           description="Crea un objeto Vencimiento a partir de VencimientoCreate y lo registra en la base de datos.")
 def crear_vencimiento(vencimiento: VencimientoCreate, session: Session = Depends(get_session)) -> Vencimiento:
-    return registrar_vencimiento(session, vencimiento)
+    nuevo_vencimiento = Vencimiento(**vencimiento.model_dump())
+    return registrar_vencimiento(session, nuevo_vencimiento)
 
 # Filtra y retorna vencimientos según criterios.
 @app.get("/vencimientos/", 
