@@ -1,1 +1,1 @@
-# Este archivo puede estar vacío
+# Este archivo vacío indica a Python que api es un paquete

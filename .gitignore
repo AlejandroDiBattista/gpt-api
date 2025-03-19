@@ -1,3 +1,8 @@
+*.py[cod]
+__pycache__/
+*.db
+.web
+assets/external/
 
 /api/__pycache__
 api/.env

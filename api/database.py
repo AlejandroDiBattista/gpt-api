@@ -10,8 +10,7 @@ TOKEN = os.getenv("TURSO_AUTH_TOKEN")
 
 print(f"create_engine: {URL=}{TOKEN=}")
 
-engine = create_engine(f"sqlite+libsql://{URL}?authToken={TOKEN}", 
-                       echo=True, connect_args={"check_same_thread": False})
+engine = create_engine(f"sqlite+libsql://{URL}?authToken={TOKEN}", echo=True, connect_args={"check_same_thread": False})
 
 db_lock = threading.Lock()
 

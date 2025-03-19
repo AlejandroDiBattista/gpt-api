@@ -1,10 +1,17 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException
 from sqlmodel import SQLModel, Session, select
-from api.database import engine, get_session  # Importación absoluta
-from api.models import *
-from api.crud import registrar_vencimiento, obtener_vencimientos, obtener_vencimiento, cambiar_fecha, cambiar_responsable, cambiar_pago
+import sys
+import os
+
+# Añadir el directorio raíz al path de Python
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from api.database import engine, get_session  # Volver a importación absoluta
+from api.models import *  # Volver a importación absoluta
+from api.crud import registrar_vencimiento, obtener_vencimientos, obtener_vencimiento, cambiar_fecha, cambiar_responsable, cambiar_pago  # Volver a importación absoluta
 from datetime import date  # Importar date
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -36,12 +43,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+
 # Ruta raíz: devuelve la lista completa de vencimientos.
 @app.get("/", 
          summary="Ruta raíz de la API que devuelve una lista de vencimientos.", 
          description="Consulta la base de datos y retorna una lista completa de vencimientos registrados.")
 def leer_raiz(session: Session = Depends(get_session)) -> list[Vencimiento]:
     return obtener_vencimientos(session)
+
 
 # Crea un nuevo vencimiento a partir de VencimientoCreate y lo registra en la base de datos.
 @app.post("/vencimientos/", 
@@ -51,12 +60,14 @@ def crear_vencimiento(vencimiento: VencimientoCreate, session: Session = Depends
     nuevo_vencimiento = Vencimiento(**vencimiento.model_dump())
     return registrar_vencimiento(session, nuevo_vencimiento)
 
+
 # Filtra y retorna vencimientos según criterios.
 @app.get("/vencimientos/", 
          summary="Obtiene una lista de vencimientos filtrados según criterios.", 
          description="Permite filtrar vencimientos por fechas, estado de pago y responsable.")
 def leer_vencimientos(desde: date = None, hasta: date = None, pagado: bool = None, responsable: str = None, session: Session = Depends(get_session)) -> list[Vencimiento]:
     return obtener_vencimientos(session, desde, hasta, pagado, responsable)
+
 
 # Retorna un vencimiento específico por ID.
 @app.get("/vencimientos/{id}", 
@@ -68,6 +79,7 @@ async def leer_vencimiento(id: int, session: Session = Depends(get_session)) -> 
         raise HTTPException(status_code=404, detail="Vencimiento no encontrado")
     return vencimiento
 
+
 # Actualiza la fecha de vencimiento.
 @app.patch("/vencimientos/{id}/pasar/{fecha}", 
            summary="Actualiza la fecha de vencimiento.", 
@@ -77,6 +89,7 @@ async def actualizar_fecha_vencimiento(id: int, fecha: date, session: Session = 
     if not vencimiento:
         raise HTTPException(status_code=404, detail="Vencimiento no encontrado")
     return vencimiento
+
 
 # Actualiza el responsable del vencimiento.
 @app.patch("/vencimientos/{id}/asignar/{responsable}", 
@@ -88,6 +101,7 @@ async def actualizar_responsable_vencimiento(id: int, responsable: str, session:
         raise HTTPException(status_code=404, detail="Vencimiento no encontrado")
     return vencimiento
 
+
 # Actualiza el pago de un vencimiento.
 @app.patch("/vencimientos/{id}/pagar/{monto}", 
            summary="Actualiza el pago de un vencimiento.", 
@@ -97,3 +111,8 @@ async def actualizar_pago_vencimiento(id: int, monto: float = None, session: Ses
     if not vencimiento:
         raise HTTPException(status_code=404, detail="Vencimiento no encontrado")
     return vencimiento
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("api.main:app", host="0.0.0.0", port=8000, reload=True)
